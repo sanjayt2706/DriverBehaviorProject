@@ -1,0 +1,52 @@
+# Dataset
+Dataset/raw/UAH-DriveSet/
+
+# ML outputs
+ML/outputs/*
+!ML/outputs/.gitkeep
+
+# Trained models
+Backend/ml_model/*.pkl
+Backend/ml_model/*.joblib
+Backend/ml_model/*.json
+!Backend/ml_model/.gitkeep
+
+# Local database
+Backend/driverisk.db
+Backend/driverisk.db-*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+ML/venv/
+
+# Android
+local.properties
+*.iml
+.gradle/
+captures/
+build/
+app/build/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment files
+.env
+*.env
+
+# Logs
+*.log
+
+# OS files
+Thumbs.db
+desktop.ini
+.DS_Store

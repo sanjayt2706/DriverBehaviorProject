@@ -35,7 +35,7 @@ class ModelBundle:
         self.model = joblib.load(MODEL_PATH)
         self.scaler = joblib.load(SCALER_PATH)
         self.feature_list = json.loads(FEATURE_LIST_PATH.read_text())
-        self.model_name = type(self.model).__name__
+        self.model_name = getattr(self.model, "algorithm_name", type(self.model).__name__)
         self.loaded = True
         logger.info(f"Loaded model {self.model_name} with {len(self.feature_list)} features.")
 
