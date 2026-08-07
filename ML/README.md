@@ -1,72 +1,347 @@
 # ML/
 
-Pipeline A (offline training), now built against the **UAH-DriveSet** public
-dataset instead of self-collected drives. See
-`Documentation/Dataset Specification.md` for the full rationale, licensing,
-and column mapping.
+Pipeline A (offline training), built against the **UAH-DriveSet** public
+dataset instead of self-collected drives.
 
-## Setup
+See `Documentation/Dataset Specification.md` for:
+
+- Dataset selection rationale
+- Licensing requirements
+- Column mapping
+- Adapter implementation
+- Replacing UAH with your own collected data later
+
+---
+
+# Setup
 
 ```powershell
 cd ML
 python -m venv venv
 venv\Scripts\activate
-pip install pandas scikit-learn xgboost shap joblib matplotlib pytest
+
+pip install pandas scikit-learn xgboost shap joblib matplotlib pytest sqlalchemy pydantic fastapi uvicorn
 ```
 
-1. Download UAH-DriveSet (see `Dataset/README.md`) into
-   `Dataset/raw/UAH-DriveSet/`.
-2. Make sure `Backend/` has its own dependencies installed too (steps 04+
-   import `Backend/app/processing` directly).
+## Dataset
 
-## Run order
+1. Download **UAH-DriveSet** (see `Dataset/README.md`).
+2. Extract it into:
+
+```text
+Dataset/raw/UAH-DriveSet/
+```
+
+3. Ensure the Backend dependencies are also installed because
+steps 04 onward reuse:
+
+```text
+Backend/app/processing/
+```
+
+instead of duplicating preprocessing code.
+
+---
+
+# Training Pipeline
+
+Run the scripts **in this exact order**.
 
 ```powershell
 cd ML\src
-python step04_build_features.py   # discover + adapt + window + feature + label
-python step05_split_scale.py      # trip-grouped 80/20 split, fit scaler
-python step06_train_rf.py         # train Random Forest
-python step07_train_xgb.py        # train XGBoost
-python step08_evaluate.py         # metrics + 5-fold CV -> model_comparison.json
-python step09_select_best.py      # pick higher F1, wrap, export best_model.pkl
-python step10_global_shap.py      # global SHAP importance for the dashboard
-python export_artifacts.py        # final checkpoint - confirms all 4 files present
+
+python step04_build_features.py
+python step05_split_scale.py
+python step06_train_rf.py
+python step07_train_xgb.py
+python step08_evaluate.py
+python step09_select_best.py
+python step10_global_shap_fixed.py
+python export_artifacts.py
 ```
 
-`step01_load_raw.py`, `step02_clean.py` and `step03_label.py` are called
-internally by `step04_build_features.py` - they're not meant to be run
-standalone in normal use, but each can be run alone (`python step01_load_raw.py`)
-to sanity-check just that stage.
+---
 
-After `export_artifacts.py` confirms all four files are in `Backend/ml_model/`,
-restart the Backend and check `GET /health` — `model_loaded` should now be
-`true` and `model_name` should say `RandomForest` or `XGBoost`, not
-`PLACEHOLDER_HEURISTIC`.
+## What each step does
 
-## Verify without the real dataset
+### step04_build_features.py
+
+- Discovers UAH trips
+- Loads raw files
+- Cleans data
+- Windowing (5 s)
+- Feature extraction
+- Road geometry
+- Curve density
+- Creates labeled feature dataset
+
+---
+
+### step05_split_scale.py
+
+- Train/Test split (trip grouped)
+- 80/20 split
+- Fits StandardScaler
+
+---
+
+### step06_train_rf.py
+
+Trains Random Forest.
+
+---
+
+### step07_train_xgb.py
+
+Trains XGBoost.
+
+---
+
+### step08_evaluate.py
+
+Generates:
+
+- Accuracy
+- Precision
+- Recall
+- Macro F1
+- Cross Validation
+- Confusion Matrix
+- model_comparison.json
+
+---
+
+### step09_select_best.py
+
+Chooses the model with the best Macro F1 score.
+
+Exports:
+
+```text
+Backend/ml_model/best_model.pkl
+```
+
+---
+
+### step10_global_shap_fixed.py
+
+Generates:
+
+- Global SHAP feature importance
+- shap_global_importance.json
+- SHAP plots
+
+(**Use this script instead of the older `step10_global_shap.py`**.)
+
+---
+
+### export_artifacts.py
+
+Verifies all required deployment artifacts exist and copies them to:
+
+```text
+Backend/ml_model/
+```
+
+---
+
+# Internal Steps
+
+These are automatically called by `step04_build_features.py`.
+
+Normally you **do not** run them manually.
+
+```
+step01_load_raw.py
+step02_clean.py
+step03_label.py
+```
+
+They can still be executed individually for debugging.
+
+Example:
+
+```powershell
+python step01_load_raw.py
+```
+
+---
+
+# Expected Output
+
+After running the complete pipeline, the Backend should contain:
+
+```text
+Backend/
+└── ml_model/
+    ├── best_model.pkl
+    ├── scaler.pkl
+    ├── feature_list.json
+    ├── shap_global_importance.json
+    └── ...
+```
+
+---
+
+# Backend Verification
+
+Restart the Backend.
+
+Open:
+
+```
+GET /health
+```
+
+Expected:
+
+```json
+{
+  "model_loaded": true,
+  "model_name": "RandomForest"
+}
+```
+
+or
+
+```json
+{
+  "model_loaded": true,
+  "model_name": "XGBoost"
+}
+```
+
+It should **NOT** say:
+
+```
+PLACEHOLDER_HEURISTIC
+```
+
+---
+
+# Verify Without the Real Dataset
 
 ```powershell
 cd ML
+
 pytest tests/ -v
 ```
 
-This runs the UAH file-format adapter (axis remap, unit conversion,
-upsampling, event-based labeling) against a small synthetic fixture
-generated on the fly, so you can confirm the pipeline code itself is
-correct before spending time downloading the ~500-minute real dataset.
-It does **not** validate model quality — only that the code runs and
-produces sane shapes.
+This executes the pipeline using a synthetic UAH-format fixture.
 
-## What's dataset-specific vs. shared
+It validates:
 
-| File | Dataset-specific? |
-|---|---|
-| `step01_load_raw.py` | Yes — UAH folder discovery |
-| `step02_clean.py` | Yes — UAH axis remap, unit conversion, gyro derivation, upsampling |
-| `step03_label.py` | Yes — UAH `EVENTS_INERTIAL` severity → LOW/MEDIUM/HIGH |
-| `step04_build_features.py` onward | No — calls `Backend/app/processing` and standard sklearn/xgboost, same code that will run against your own collected data later |
+- Axis remapping
+- Unit conversion
+- Gyroscope derivation
+- Upsampling
+- Event labeling
+- Feature extraction
 
-This split is deliberate (Architecture.md's shared-code rule): only steps
-01–03 need to change when you add your own collected trips. See
-`Documentation/Dataset Specification.md` → "Replacing or augmenting with
-your own data" for exactly how.
+It **does not** measure model quality.
+
+---
+
+# Dataset-specific vs Shared Code
+
+| File | Dataset Specific? |
+|------|-------------------|
+| step01_load_raw.py | Yes |
+| step02_clean.py | Yes |
+| step03_label.py | Yes |
+| step04_build_features.py onward | No |
+
+The design intentionally shares:
+
+```
+Backend/app/processing/
+```
+
+between:
+
+- Offline ML training
+- Runtime Backend predictions
+
+to guarantee identical feature extraction.
+
+---
+
+# Replacing UAH with Your Own Data
+
+Only these files change:
+
+```
+step01_load_raw.py
+step02_clean.py
+step03_label.py
+```
+
+Everything from:
+
+```
+step04_build_features.py
+```
+
+onward remains exactly the same.
+
+See:
+
+```
+Documentation/Dataset Specification.md
+```
+
+for the complete migration procedure.
+
+---
+
+# Troubleshooting
+
+## ModuleNotFoundError
+
+Install missing packages:
+
+```powershell
+pip install sqlalchemy pydantic fastapi uvicorn matplotlib shap
+```
+
+---
+
+## model_loaded = false
+
+Check:
+
+```
+Backend/ml_model/
+```
+
+contains:
+
+- best_model.pkl
+- feature_list.json
+- scaler.pkl
+
+---
+
+## SHAP errors
+
+Always run:
+
+```powershell
+python step10_global_shap_fixed.py
+```
+
+Do **not** use:
+
+```powershell
+python step10_global_shap.py
+```
+
+because it is retained only for reference and is not compatible with the current SHAP implementation.
+
+---
+
+# Notes
+
+The training pipeline and runtime backend intentionally share the same preprocessing and feature extraction code to guarantee feature parity.
+
+No feature engineering logic is duplicated between ML training and production inference.
