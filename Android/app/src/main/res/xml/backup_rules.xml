@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Module 1 has no local data to back up yet (Room database arrives in a later module).
+   Placeholder kept empty on purpose so android:fullBackupContent has a valid target.
+-->
+<full-backup-content>
+</full-backup-content>

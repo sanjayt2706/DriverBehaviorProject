@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DriveRisk</string>
+
+    <!-- Splash -->
+    <string name="splash_tagline">Smartphone driving analysis, explained.</string>
+
+    <!-- Home -->
+    <string name="home_greeting">Welcome back</string>
+    <string name="home_subtitle">Ready for a safer trip?</string>
+    <string name="home_start_trip">Start Trip</string>
+    <string name="home_view_history">Trip History</string>
+    <string name="home_no_recent_trip">No trips recorded yet. Press Start Trip to begin.</string>
+    <string name="home_feature_coming_soon">This feature is not available yet.</string>
+</resources>
