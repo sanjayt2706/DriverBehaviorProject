@@ -12,4 +12,12 @@
     <string name="home_view_history">Trip History</string>
     <string name="home_no_recent_trip">No trips recorded yet. Press Start Trip to begin.</string>
     <string name="home_feature_coming_soon">This feature is not available yet.</string>
+
+    <!-- Permissions -->
+    <string name="permission_rationale_message">Location and notification permissions are needed to record and report on your trips.</string>
+    <string name="permission_rationale_grant">Grant</string>
+    <string name="permission_denied_title">Permission required</string>
+    <string name="permission_denied_message">DriveRisk needs location and notification access to record trips. Enable them in Settings.</string>
+    <string name="permission_denied_open_settings">Open Settings</string>
+    <string name="permission_denied_cancel">Cancel</string>
 </resources>
