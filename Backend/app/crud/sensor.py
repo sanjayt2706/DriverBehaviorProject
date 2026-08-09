@@ -4,9 +4,11 @@ All `raw_sensor_data` queries. Bulk insert per Database.md "Operational notes" -
 row-by-row ORM inserts for 500-row batches at ~90k rows/trip is the most
 likely performance failure in this build.
 
-KNOWN GAP: resent batches (same batch_index sent twice after a dropped
-connection) are not deduplicated yet. Fine for a single-demo MVP where the
-app controls retry behaviour; revisit before any multi-device use.
+This module does not itself deduplicate resent batches - it just inserts
+whatever it's given. Skipping an already-received batch_index (API.md:
+"Duplicate batch_index values are ignored rather than double-inserted") is
+the caller's job: app/api/routes/trips.py only calls bulk_insert_samples()
+here if trip_crud.try_claim_batch() atomically claimed the batch first.
 """
 from typing import List
 from sqlalchemy.orm import Session

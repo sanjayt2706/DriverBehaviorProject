@@ -21,6 +21,11 @@ def _set_sqlite_pragma(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.execute("PRAGMA journal_mode=WAL")
+    # SQLite allows only one writer at a time. Without a busy timeout, a second
+    # concurrent writer (e.g. a retried upload racing the original request -
+    # see trip_crud.try_claim_batch) gets an immediate "database is locked"
+    # error instead of waiting the first one out.
+    cursor.execute("PRAGMA busy_timeout=5000")
     cursor.close()
 
 

@@ -29,6 +29,11 @@ class Trip(Base):
     duration_s = Column(Float, nullable=True)
     distance_km = Column(Float, nullable=True)
     sample_count = Column(Integer, default=0)
+    # Comma-separated batch_index values already inserted, so a resent batch
+    # (dropped connection after the server committed but before the client
+    # saw the response) is ignored instead of double-inserted - API.md
+    # "Duplicate batch_index values are ignored rather than double-inserted."
+    received_batches = Column(String, nullable=False, default="")
     status = Column(String, nullable=False, default=TripStatus.CREATED)
     created_at = Column(String, nullable=False)
     processed_at = Column(String, nullable=True)

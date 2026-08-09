@@ -34,6 +34,5 @@ pytest tests/ -v
 
 ## Known gaps (tracked, not blocking)
 
-- Resent batches with a duplicate `batch_index` are not deduplicated. Fine for a single-device MVP demo; revisit before any multi-device use.
 - Event thresholds in `app/config.py` (harsh brake/accel/corner, overspeed, curve angle) are placeholder values from `Architecture.md` — must be tuned against real drive data once `Dataset/` has sessions covering curvy roads.
 - `accel_x`/`accel_y` are treated as longitudinal/lateral respectively — confirm this matches the actual phone mounting orientation used during data collection.

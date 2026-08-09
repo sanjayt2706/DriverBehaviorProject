@@ -5,6 +5,8 @@ heuristic predictor (no trained model required). Generates a short synthetic
 trip: mostly straight, with one sharp turn, to exercise curve density and
 the harsh-cornering event.
 """
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -77,6 +79,67 @@ def test_full_round_trip(client):
     assert result["trip_score"] is not None
     assert len(result["windows"]) > 0
     assert result["curve_density"] is not None
+
+
+def test_duplicate_batch_index_not_double_inserted(client):
+    """API.md: 'Duplicate batch_index values are ignored rather than
+    double-inserted, so the app can safely retry after a dropped connection.'
+    Simulates the app resending batch_index=0 after never seeing the
+    first response."""
+    trip_id = "test_trip_dup_batch"
+    client.post("/trips", json={
+        "trip_id": trip_id, "user_id": "test_driver", "start_time": "2026-08-06T09:00:00Z",
+    })
+
+    payload = {
+        "batch_index": 0,
+        "batch_count": 1,
+        "end_time": "2026-08-06T09:00:06Z",
+        "samples": _synthetic_samples(n=100),
+    }
+
+    r1 = client.post(f"/trips/{trip_id}/upload", json=payload)
+    assert r1.status_code == 200
+    assert r1.json()["total_samples"] == 100
+
+    r2 = client.post(f"/trips/{trip_id}/upload", json=payload)
+    assert r2.status_code == 200
+    assert r2.json()["received"] == 100  # looks like a normal success to the client
+    assert r2.json()["total_samples"] == 100  # but nothing was actually re-inserted
+
+
+def test_concurrent_duplicate_batch_upload_not_double_inserted(client):
+    """
+    The sequential dup test above sends the retry only after the first
+    request's response has fully returned, so it never actually overlaps
+    the two requests - it can't catch a check-then-act race where both
+    requests see "not yet received" before either commits. This fires both
+    requests from separate threads at (approximately) the same time, which
+    is what a real client retrying because it never saw a response --
+    rather than because it saw a definite failure -- looks like.
+    """
+    trip_id = "test_trip_concurrent_dup_batch"
+    client.post("/trips", json={
+        "trip_id": trip_id, "user_id": "test_driver", "start_time": "2026-08-06T09:00:00Z",
+    })
+
+    payload = {
+        "batch_index": 0,
+        "batch_count": 1,
+        "end_time": "2026-08-06T09:00:06Z",
+        "samples": _synthetic_samples(n=100),
+    }
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(client.post, f"/trips/{trip_id}/upload", json=payload)
+            for _ in range(2)
+        ]
+        responses = [f.result() for f in futures]
+
+    assert all(r.status_code == 200 for r in responses)
+    final_total = client.post(f"/trips/{trip_id}/upload", json=payload).json()["total_samples"]
+    assert final_total == 100  # exactly one of the two concurrent requests may have inserted
 
 
 def test_unknown_trip_404(client):

@@ -48,7 +48,8 @@ def upload_batch(trip_id: str, payload: UploadBatchRequest, db: Session = Depend
     if len(payload.samples) > MAX_BATCH_SIZE:
         raise errors.batch_too_large(trip_id)
 
-    sensor_crud.bulk_insert_samples(db, trip_id, payload.samples)
+    if trip_crud.try_claim_batch(db, trip, payload.batch_index):
+        sensor_crud.bulk_insert_samples(db, trip_id, payload.samples)
     total = sensor_crud.count_samples(db, trip_id)
 
     is_last_batch = payload.batch_index == payload.batch_count - 1
