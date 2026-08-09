@@ -109,13 +109,13 @@ def main():
     if not run_script("analyze_class_distribution.py", "Class distribution analysis"):
         sys.exit(1)
     
-    # Step 3: Check and regenerate SHAP if needed
+
     print_step(3, "SHAP Feature Importance (checking for completeness)")
     print(f"{Color.OKBLUE}Verifies all 24 features are ranked by importance{Color.ENDC}")
     if not check_shap_completeness():
         sys.exit(1)
     
-    # Step 4: Generate summary
+   
     print_step(4, "Generate Complete Training Summary")
     print(f"{Color.OKBLUE}Compiles all results into ML_Training_Summary.md{Color.ENDC}")
     if not run_script("generate_training_summary.py", "Training summary generation"):
