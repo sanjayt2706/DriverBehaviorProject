@@ -6,8 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Foreground service notification, required from Android 13 (API 33) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Declared ahead of the Module 3 recording service, which must run in the foreground
-         with a location-type foreground service to keep recording while the screen is off. -->
+    <!-- TripRecordingService runs in the foreground with a location-type foreground service
+         so recording keeps going while the screen is off. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
@@ -31,6 +31,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".service.TripRecordingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
     </application>
 

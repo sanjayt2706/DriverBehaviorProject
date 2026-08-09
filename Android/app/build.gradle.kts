@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("androidx.navigation.safeargs.kotlin")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -62,8 +63,21 @@ dependencies {
 
     implementation("androidx.fragment:fragment-ktx:1.8.2")
 
+    // Sensors (Layer 1): GPS via FusedLocationProviderClient for battery-efficient,
+    // driving-grade location fixes. Accelerometer/gyroscope use the platform SensorManager
+    // directly (no extra dependency needed).
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // Local persistence (Layer 1's Room store) — offline buffering per FolderStructure.md.
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.test:rules:1.6.1")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }

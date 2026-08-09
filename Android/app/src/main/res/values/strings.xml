@@ -20,4 +20,9 @@
     <string name="permission_denied_message">DriveRisk needs location and notification access to record trips. Enable them in Settings.</string>
     <string name="permission_denied_open_settings">Open Settings</string>
     <string name="permission_denied_cancel">Cancel</string>
+
+    <!-- Trip recording -->
+    <string name="recording_notification_channel_name">Trip recording</string>
+    <string name="recording_notification_title">Recording your trip</string>
+    <string name="recording_notification_text">DriveRisk is collecting sensor and GPS data.</string>
 </resources>
